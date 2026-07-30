@@ -49,6 +49,9 @@ function runtimeApiBase() {
   ) {
     return "http://terminal.local:8788";
   }
+  if (process.env.NODE_ENV === "production") {
+    return "https://tavi-ai-montage-studio-production.up.railway.app";
+  }
   return "http://localhost:8788";
 }
 
