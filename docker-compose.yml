@@ -1,0 +1,15 @@
+services:
+  video-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    ports:
+      - "8788:8788"
+    env_file:
+      - .env
+    volumes:
+      - montage-data:/data
+    restart: unless-stopped
+
+volumes:
+  montage-data:
