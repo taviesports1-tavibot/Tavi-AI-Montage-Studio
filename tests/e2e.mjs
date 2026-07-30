@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import {
-  mkdtemp,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -38,7 +33,7 @@ function run(executable, args, options = {}) {
 async function waitForHealth() {
   for (let attempt = 0; attempt < 60; attempt += 1) {
     try {
-      const response = await fetch(`${base}/api/health`);
+      const response = await fetch(`${base}/health`);
       if (response.ok) return response.json();
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -63,6 +58,7 @@ async function waitForJob(statusUrl) {
 try {
   const clipOne = path.join(temporary, "one.mp4");
   const clipTwo = path.join(temporary, "two.mp4");
+  const iphoneClip = path.join(temporary, "iphone-hevc.mov");
   const music = path.join(temporary, "beat.wav");
   await run("ffmpeg", [
     "-y",
@@ -115,6 +111,32 @@ try {
     "-f",
     "lavfi",
     "-i",
+    "testsrc2=size=640x360:rate=30:duration=3",
+    "-f",
+    "lavfi",
+    "-i",
+    "sine=frequency=640:sample_rate=48000:duration=3",
+    "-c:v",
+    "libx265",
+    "-preset",
+    "ultrafast",
+    "-tag:v",
+    "hvc1",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "aac",
+    "-shortest",
+    iphoneClip,
+  ]);
+  await run("ffmpeg", [
+    "-y",
+    "-hide_banner",
+    "-loglevel",
+    "error",
+    "-f",
+    "lavfi",
+    "-i",
     "sine=frequency=180:sample_rate=48000:duration=12",
     "-af",
     "volume='if(lt(mod(t,0.5),0.08),1,0.18)':eval=frame",
@@ -137,6 +159,7 @@ try {
         X264_PRESET: "ultrafast",
         X264_CRF: "28",
         TEMP_FILE_TTL_HOURS: "48",
+        ALLOWED_ORIGINS: "http://frontend.test",
       },
       stdio: ["ignore", "pipe", "pipe"],
     },
@@ -146,6 +169,32 @@ try {
 
   const health = await waitForHealth();
   assert.equal(health.ok, true);
+  assert.equal(health.status, "ok");
+  assert.equal(health.ffmpeg.available, true);
+  assert.equal(health.ffprobe.available, true);
+
+  const preflight = await fetch(`${base}/api/projects`, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "http://frontend.test",
+      "Access-Control-Request-Method": "POST",
+    },
+  });
+  assert.equal(preflight.status, 204);
+  assert.equal(
+    preflight.headers.get("access-control-allow-origin"),
+    "http://frontend.test",
+  );
+
+  const rejectedOrigin = await fetch(`${base}/api/projects`, {
+    method: "OPTIONS",
+    headers: {
+      Origin: "https://not-allowed.example",
+      "Access-Control-Request-Method": "POST",
+    },
+  });
+  assert.equal(rejectedOrigin.status, 403);
+  assert.equal(rejectedOrigin.headers.get("access-control-allow-origin"), null);
 
   const settings = {
     style: "tavi-esports",
@@ -173,6 +222,11 @@ try {
     "clips",
     new Blob([await readFile(clipTwo)], { type: "video/mp4" }),
     "two.mp4",
+  );
+  form.append(
+    "clips",
+    new Blob([await readFile(iphoneClip)], { type: "video/quicktime" }),
+    "iphone-hevc.mov",
   );
   form.append(
     "music",
@@ -247,7 +301,12 @@ try {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        settings: { ...settings, style: "cinematic", intro: false, outro: false },
+        settings: {
+          ...settings,
+          style: "cinematic",
+          intro: false,
+          outro: false,
+        },
       }),
     },
   );
@@ -260,6 +319,17 @@ try {
   const plan = await planResponse.json();
   assert.equal(plan.style, "cinematic");
   assert.ok(plan.clips.every((clip) => Array.isArray(clip.reasons)));
+
+  for (let attempt = 0; attempt < 9; attempt += 1) {
+    const invalidUpload = await fetch(`${base}/api/projects`, {
+      method: "POST",
+    });
+    assert.equal(invalidUpload.status, 415);
+  }
+  const rateLimitedUpload = await fetch(`${base}/api/projects`, {
+    method: "POST",
+  });
+  assert.equal(rateLimitedUpload.status, 429);
 
   console.log("E2E montage workflow passed.");
 } catch (error) {

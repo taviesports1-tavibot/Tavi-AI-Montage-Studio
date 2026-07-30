@@ -26,6 +26,8 @@ TaVi Esports.
 - реальний backend job status без імітації прогресу;
 - Safari-compatible byte range для вбудованого відеоплеєра;
 - повторний рендер з іншим стилем без повторного аналізу кліпів;
+- точний CORS allowlist, rate limiting і обмеження довжини queue;
+- `/health` перевіряє доступність FFmpeg та ffprobe;
 - локальне тимчасове storage та очищення за TTL;
 - recovery: перервані worker jobs отримують зрозумілий статус помилки.
 
@@ -98,11 +100,19 @@ npm run dev:studio
 | `MAX_CLIPS` | `10` | максимум кліпів |
 | `MAX_CLIP_MB` | `250` | максимум одного відео |
 | `MAX_CLIP_DURATION_SECONDS` | `180` | максимум тривалості кліпу |
+| `MAX_QUEUE_DEPTH` | `3` | максимум активних і очікуючих jobs |
+| `UPLOAD_RATE_LIMIT_PER_HOUR` | `10` | uploads на IP за годину |
+| `RERENDER_RATE_LIMIT_PER_HOUR` | `20` | rerenders на IP за годину |
 | `RENDER_WIDTH` | `1080` | ширина MP4 |
 | `RENDER_HEIGHT` | `1920` | висота MP4 |
 | `X264_CRF` | `20` | якість H.264 |
 
 ## API
+
+### `GET /health`
+
+Повертає `status`, queue depth та безпечну інформацію про доступність
+FFmpeg/ffprobe. Legacy alias: `GET /api/health`.
 
 ### `POST /api/projects`
 
@@ -156,16 +166,18 @@ upload → metadata → analysis → EDL → render → video range → rerender
 docker compose up --build video-worker
 ```
 
-Для production frontend можна розмістити окремо, а довгий FFmpeg worker —
-на VM/container із CPU/GPU та persistent volume.
+Для test production deployment frontend розміщується як окремий Vercel
+project, а довгий FFmpeg worker — як окремий Railway service із persistent
+volume, змонтованим у `STORAGE_ROOT=/data`.
 
 Перед публікацією:
 
 1. задати публічний `NEXT_PUBLIC_MONTAGE_API_URL`;
 2. додати домен frontend до `ALLOWED_ORIGINS`;
-3. замінити `LocalStorageProvider` на S3/R2/Vercel Blob adapter;
-4. замінити in-memory queue на Redis/BullMQ або іншу durable queue;
-5. поставити auth, rate limits та per-user quotas.
+3. додати Railway volume у `/data`;
+4. для multi-user production замінити `LocalStorageProvider` на S3/R2 adapter;
+5. для горизонтального масштабування замінити in-memory queue на durable queue;
+6. перед широким публічним запуском додати auth і per-user quotas.
 
 ## Чесні обмеження MVP
 

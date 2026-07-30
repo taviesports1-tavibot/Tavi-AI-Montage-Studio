@@ -7,7 +7,7 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --omit=dev
 
 COPY lib ./lib
 COPY video-worker ./video-worker
@@ -19,5 +19,8 @@ ENV STORAGE_ROOT=/data
 
 EXPOSE 8788
 VOLUME ["/data"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD ["node", "-e", "const port=process.env.WORKER_PORT||process.env.PORT||8788;fetch(`http://127.0.0.1:${port}/health`).then((response)=>{if(!response.ok)process.exit(1)}).catch(()=>process.exit(1))"]
 
 CMD ["node", "--import", "tsx", "video-worker/src/server.ts"]

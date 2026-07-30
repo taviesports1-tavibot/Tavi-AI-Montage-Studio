@@ -9,7 +9,7 @@ function positiveInteger(name: string, fallback: number) {
 
 export const config = {
   host: process.env.WORKER_HOST ?? "0.0.0.0",
-  port: positiveInteger("WORKER_PORT", 8788),
+  port: positiveInteger("WORKER_PORT", positiveInteger("PORT", 8788)),
   storageRoot: path.resolve(
     process.env.STORAGE_ROOT ?? path.join(projectRoot, ".studio-data"),
   ),
@@ -19,6 +19,10 @@ export const config = {
   maxClipBytes: positiveInteger("MAX_CLIP_MB", 250) * 1024 * 1024,
   maxMusicBytes: positiveInteger("MAX_MUSIC_MB", 40) * 1024 * 1024,
   maxClipDuration: positiveInteger("MAX_CLIP_DURATION_SECONDS", 180),
+  maxQueueDepth: positiveInteger("MAX_QUEUE_DEPTH", 3),
+  globalRateLimitMax: positiveInteger("RATE_LIMIT_MAX_PER_15_MINUTES", 1_200),
+  uploadRateLimitMax: positiveInteger("UPLOAD_RATE_LIMIT_PER_HOUR", 10),
+  rerenderRateLimitMax: positiveInteger("RERENDER_RATE_LIMIT_PER_HOUR", 20),
   ttlHours: positiveInteger("TEMP_FILE_TTL_HOURS", 24),
   renderWidth: positiveInteger("RENDER_WIDTH", 1080),
   renderHeight: positiveInteger("RENDER_HEIGHT", 1920),

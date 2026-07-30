@@ -28,13 +28,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_SETTINGS,
   TARGET_DURATIONS,
@@ -47,7 +41,7 @@ import {
 
 function runtimeApiBase() {
   if (process.env.NEXT_PUBLIC_MONTAGE_API_URL) {
-    return process.env.NEXT_PUBLIC_MONTAGE_API_URL;
+    return process.env.NEXT_PUBLIC_MONTAGE_API_URL.replace(/\/+$/, "");
   }
   if (
     typeof window !== "undefined" &&
@@ -232,17 +226,13 @@ function ClipCard({
           muted
           playsInline
           preload="metadata"
-          onLoadedMetadata={(event) =>
-            onDuration(event.currentTarget.duration)
-          }
+          onLoadedMetadata={(event) => onDuration(event.currentTarget.duration)}
         />
         <span>{formatDuration(clip.duration)}</span>
       </div>
       <div className="clip-info">
         <strong title={clip.file.name}>{clip.file.name}</strong>
-        <small>
-          {formatBytes(clip.file.size)} · MP4/MOV
-        </small>
+        <small>{formatBytes(clip.file.size)} · MP4/MOV</small>
       </div>
       <div className="clip-actions">
         <button
@@ -277,8 +267,7 @@ function ClipCard({
 export function MontageStudio() {
   const [clips, setClips] = useState<ClientClip[]>([]);
   const [music, setMusic] = useState<File | null>(null);
-  const [settings, setSettings] =
-    useState<MontageSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<MontageSettings>(DEFAULT_SETTINGS);
   const [screen, setScreen] = useState<"setup" | "processing" | "result">(
     "setup",
   );
@@ -308,7 +297,8 @@ export function MontageStudio() {
   const totalSourceDuration = useMemo(
     () =>
       clips.reduce(
-        (sum, clip) => sum + (Number.isFinite(clip.duration) ? clip.duration! : 0),
+        (sum, clip) =>
+          sum + (Number.isFinite(clip.duration) ? clip.duration! : 0),
         0,
       ),
     [clips],
@@ -417,7 +407,8 @@ export function MontageStudio() {
 
     const formData = new FormData();
     formData.append("settings", JSON.stringify(settings));
-    for (const clip of clips) formData.append("clips", clip.file, clip.file.name);
+    for (const clip of clips)
+      formData.append("clips", clip.file, clip.file.name);
     if (music) formData.append("music", music, music.name);
 
     try {
@@ -432,7 +423,7 @@ export function MontageStudio() {
         xhr.onerror = () =>
           reject(
             new Error(
-              "Video Worker недоступний. Перевірте, що локальний worker запущено.",
+              "Video Worker недоступний. Перевірте з’єднання та спробуйте ще раз.",
             ),
           );
         xhr.onload = () => {
@@ -499,12 +490,11 @@ export function MontageStudio() {
         },
       );
       const body = (await response.json()) as
-        | CreatedJob
-        | { error?: { message?: string } };
+        CreatedJob | { error?: { message?: string } };
       if (!response.ok || !("jobId" in body)) {
         throw new Error(
           "error" in body
-            ? body.error?.message ?? "Повторний рендер не вдалося запустити."
+            ? (body.error?.message ?? "Повторний рендер не вдалося запустити.")
             : "Повторний рендер не вдалося запустити.",
         );
       }
@@ -540,14 +530,19 @@ export function MontageStudio() {
     job?.phase === "complete"
       ? PHASES.length
       : PHASES.findIndex((phase) => phase.id === job?.phase);
-  const progress = job?.progress ?? (screen === "processing" ? uploadProgress * 0.08 : 0);
+  const progress =
+    job?.progress ?? (screen === "processing" ? uploadProgress * 0.08 : 0);
 
   return (
     <main className="studio-shell">
       <div className="ambient ambient-one" />
       <div className="ambient ambient-two" />
       <header className="studio-header">
-        <a className="studio-brand" href="#" aria-label="TaVi AI Montage Studio">
+        <a
+          className="studio-brand"
+          href="#"
+          aria-label="TaVi AI Montage Studio"
+        >
           <span className="brand-mark">
             <Clapperboard size={22} />
           </span>
@@ -558,7 +553,7 @@ export function MontageStudio() {
         </a>
         <div className="header-status">
           <span />
-          Local prototype
+          Public MVP
         </div>
       </header>
 
@@ -696,15 +691,15 @@ export function MontageStudio() {
             )}
           </section>
 
-          <section
-            className="workspace-section"
-            ref={styleSectionRef}
-          >
+          <section className="workspace-section" ref={styleSectionRef}>
             <div className="section-heading">
               <span className="section-index">02</span>
               <div>
                 <h2>Стиль монтажу</h2>
-                <p>Ефекти залежать від важливості події, а не ставляться постійно.</p>
+                <p>
+                  Ефекти залежать від важливості події, а не ставляться
+                  постійно.
+                </p>
               </div>
             </div>
             <div className="styles-grid">
@@ -739,7 +734,9 @@ export function MontageStudio() {
                 <span className="section-index">03</span>
                 <div>
                   <h2>Тривалість</h2>
-                  <p>AI може зробити ролик коротшим, якщо матеріалу недостатньо.</p>
+                  <p>
+                    AI може зробити ролик коротшим, якщо матеріалу недостатньо.
+                  </p>
                 </div>
               </div>
               <div className="duration-options">
@@ -764,27 +761,25 @@ export function MontageStudio() {
                 <span className="section-index">04</span>
                 <div>
                   <h2>Музика</h2>
-                  <p>Необов’язково. Cuts та impact будуть прив’язані до піків.</p>
+                  <p>
+                    Необов’язково. Cuts та impact будуть прив’язані до піків.
+                  </p>
                 </div>
               </div>
               <label className={`music-upload ${music ? "has-file" : ""}`}>
                 <input
                   type="file"
                   accept="audio/*,.mp3,.m4a,.wav,.aac"
-                  onChange={(event) =>
-                    {
-                      setMusic(event.target.files?.[0] ?? null);
-                      setProjectId(null);
-                    }
-                  }
+                  onChange={(event) => {
+                    setMusic(event.target.files?.[0] ?? null);
+                    setProjectId(null);
+                  }}
                 />
                 <Music2 size={25} />
                 <span>
                   <strong>{music?.name ?? "Додати власний трек"}</strong>
                   <small>
-                    {music
-                      ? formatBytes(music.size)
-                      : "MP3, M4A, WAV або AAC"}
+                    {music ? formatBytes(music.size) : "MP3, M4A, WAV або AAC"}
                   </small>
                 </span>
                 {music && (
@@ -825,9 +820,7 @@ export function MontageStudio() {
                         className={
                           settings.effectIntensity === value ? "active" : ""
                         }
-                        onClick={() =>
-                          updateSetting("effectIntensity", value)
-                        }
+                        onClick={() => updateSetting("effectIntensity", value)}
                       >
                         {value}
                       </button>
@@ -906,10 +899,7 @@ export function MontageStudio() {
                       max="100"
                       value={settings.musicVolume}
                       onChange={(event) =>
-                        updateSetting(
-                          "musicVolume",
-                          Number(event.target.value),
-                        )
+                        updateSetting("musicVolume", Number(event.target.value))
                       }
                     />
                   </label>
@@ -934,7 +924,10 @@ export function MontageStudio() {
               <span>
                 <small>Selected engine</small>
                 <strong>
-                  {STYLE_CARDS.find((style) => style.id === settings.style)?.name}
+                  {
+                    STYLE_CARDS.find((style) => style.id === settings.style)
+                      ?.name
+                  }
                 </strong>
               </span>
             </div>
@@ -945,9 +938,7 @@ export function MontageStudio() {
               onClick={projectId ? rerender : uploadProject}
             >
               <Sparkles size={20} />
-              {projectId
-                ? "ПОВТОРНО ЗМОНТУВАТИ"
-                : "СТВОРИТИ AI-МОНТАЖ"}
+              {projectId ? "ПОВТОРНО ЗМОНТУВАТИ" : "СТВОРИТИ AI-МОНТАЖ"}
               <ArrowRight size={20} />
             </button>
           </section>
@@ -1023,8 +1014,8 @@ export function MontageStudio() {
               })}
             </div>
             <p className="processing-note">
-              Не закривайте локальний worker під час рендера. Усі відсотки
-              надходять із backend job, а не імітуються інтерфейсом.
+              Не закривайте цю сторінку під час рендера. Усі відсотки надходять
+              із backend job, а не імітуються інтерфейсом.
             </p>
           </div>
         </section>
@@ -1068,9 +1059,8 @@ export function MontageStudio() {
                   <small>STYLE</small>
                   <strong>
                     {
-                      STYLE_CARDS.find(
-                        (style) => style.id === settings.style,
-                      )?.name
+                      STYLE_CARDS.find((style) => style.id === settings.style)
+                        ?.name
                     }
                   </strong>
                 </span>
@@ -1117,10 +1107,7 @@ export function MontageStudio() {
               >
                 <Code2 size={18} />
                 Developer · {showPlan ? "Hide" : "Show"} Edit Plan
-                <ChevronDown
-                  size={18}
-                  className={showPlan ? "rotated" : ""}
-                />
+                <ChevronDown size={18} className={showPlan ? "rotated" : ""} />
               </button>
             </div>
           </div>
