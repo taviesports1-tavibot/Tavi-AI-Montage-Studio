@@ -14,7 +14,7 @@ COPY video-worker ./video-worker
 
 ENV NODE_ENV=production
 ENV WORKER_HOST=0.0.0.0
-ENV WORKER_PORT=8788
+ENV PORT=8788
 ENV STORAGE_ROOT=/data
 
 EXPOSE 8788
