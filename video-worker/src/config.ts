@@ -31,7 +31,14 @@ export const config = {
   x264Crf: positiveInteger("X264_CRF", 20),
   allowedOrigins: (
     process.env.ALLOWED_ORIGINS ??
-    "http://localhost:3000,http://localhost:4173,http://terminal.local:4173"
+    [
+      "http://localhost:3000",
+      "http://localhost:4173",
+      "http://terminal.local:4173",
+      "https://tavi-ai-montage-studio.vercel.app",
+      "https://tavi-ai-montage-studio-tavi-esports1.vercel.app",
+      "https://tavi-ai-montage-studio-git-main-tavi-esports1.vercel.app",
+    ].join(",")
   )
     .split(",")
     .map((origin) => origin.trim())
