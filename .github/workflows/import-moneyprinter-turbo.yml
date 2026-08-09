@@ -1,0 +1,47 @@
+name: Import MoneyPrinterTurbo
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/import-moneyprinter-turbo.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout TaVi branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Clone pinned MoneyPrinterTurbo source
+        run: |
+          git clone https://github.com/harry0703/MoneyPrinterTurbo.git upstream-moneyprinter
+          cd upstream-moneyprinter
+          git checkout e14dea5578bb2154480b6bc436009eaa9987f0e3
+          rm -rf .git
+
+      - name: Copy MoneyPrinterTurbo into isolated folder
+        run: |
+          rm -rf MoneyPrinterTurbo
+          mkdir -p MoneyPrinterTurbo
+          cp -a upstream-moneyprinter/. MoneyPrinterTurbo/
+          rm -rf upstream-moneyprinter
+
+      - name: Commit imported source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add MoneyPrinterTurbo
+          if git diff --cached --quiet; then
+            echo "MoneyPrinterTurbo is already up to date."
+            exit 0
+          fi
+          git commit -m "Import MoneyPrinterTurbo source"
+          git push origin HEAD:${{ github.head_ref }}
