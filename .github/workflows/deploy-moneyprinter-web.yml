@@ -1,0 +1,40 @@
+name: Deploy MoneyPrinter Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'moneyprinter-web/**'
+      - '.github/workflows/deploy-moneyprinter-web.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Deploy standalone MoneyPrinter web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          test -n "$VERCEL_TOKEN"
+          vercel deploy moneyprinter-web \
+            --prod \
+            --yes \
+            --name moneyprinter-turbo \
+            --scope tavi-esports1 \
+            --token "$VERCEL_TOKEN" \
+            | tee /tmp/moneyprinter-vercel-url.txt
+          echo "DEPLOYMENT_URL=$(tail -n 1 /tmp/moneyprinter-vercel-url.txt)" >> "$GITHUB_ENV"
+
+      - name: Verify homepage
+        run: |
+          curl --fail --location --retry 5 --retry-delay 3 "$DEPLOYMENT_URL" >/tmp/moneyprinter-home.html
+          grep -qi "MoneyPrinter" /tmp/moneyprinter-home.html
+          echo "Verified: $DEPLOYMENT_URL"
