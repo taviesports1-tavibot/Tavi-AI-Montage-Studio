@@ -7,6 +7,20 @@ function positiveInteger(name: string, fallback: number) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+const requiredOrigins = [
+  "http://localhost:3000",
+  "http://localhost:4173",
+  "http://terminal.local:4173",
+  "https://tavi-ai-montage-studio.vercel.app",
+  "https://tavi-ai-montage-studio-tavi-esports1.vercel.app",
+  "https://tavi-ai-montage-studio-git-main-tavi-esports1.vercel.app",
+];
+
+const configuredOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 export const config = {
   host: process.env.WORKER_HOST ?? "0.0.0.0",
   port: positiveInteger("WORKER_PORT", positiveInteger("PORT", 8788)),
@@ -29,18 +43,5 @@ export const config = {
   renderFps: positiveInteger("RENDER_FPS", 30),
   x264Preset: process.env.X264_PRESET ?? "veryfast",
   x264Crf: positiveInteger("X264_CRF", 20),
-  allowedOrigins: (
-    process.env.ALLOWED_ORIGINS ??
-    [
-      "http://localhost:3000",
-      "http://localhost:4173",
-      "http://terminal.local:4173",
-      "https://tavi-ai-montage-studio.vercel.app",
-      "https://tavi-ai-montage-studio-tavi-esports1.vercel.app",
-      "https://tavi-ai-montage-studio-git-main-tavi-esports1.vercel.app",
-    ].join(",")
-  )
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  allowedOrigins: [...new Set([...requiredOrigins, ...configuredOrigins])],
 };
