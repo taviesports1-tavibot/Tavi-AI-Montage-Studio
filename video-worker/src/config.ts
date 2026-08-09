@@ -29,6 +29,8 @@ export const config = {
   renderFps: positiveInteger("RENDER_FPS", 30),
   x264Preset: process.env.X264_PRESET ?? "veryfast",
   x264Crf: positiveInteger("X264_CRF", 20),
+  moneyPrinterUrl: (process.env.MONEYPRINTER_API_URL ?? "").replace(/\/+$/, ""),
+  moneyPrinterTimeoutMs: positiveInteger("MONEYPRINTER_TIMEOUT_MS", 10_000),
   allowedOrigins: (
     process.env.ALLOWED_ORIGINS ??
     "http://localhost:3000,http://localhost:4173,http://terminal.local:4173"
