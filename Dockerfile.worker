@@ -7,7 +7,10 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# The worker starts TypeScript directly with tsx. tsx is a devDependency, so
+# production installs that omit dev dependencies leave the container unable to
+# start. Install the locked dependency graph in the worker image.
+RUN npm ci
 
 COPY lib ./lib
 COPY video-worker ./video-worker
