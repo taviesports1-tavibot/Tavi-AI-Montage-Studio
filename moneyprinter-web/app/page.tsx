@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Film, Sparkles, WandSparkles, Download, LoaderCircle } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Film, Sparkles, WandSparkles, Download, LoaderCircle, CircleCheck, CircleX } from "lucide-react";
 
 const API = (process.env.NEXT_PUBLIC_MPT_API_URL ?? "").replace(/\/+$/, "");
 
@@ -23,12 +23,27 @@ export default function Page() {
   const [script, setScript] = useState("");
   const [aspect, setAspect] = useState("9:16");
   const [source, setSource] = useState("pexels");
-  const [voice, setVoice] = useState("en-US-JennyNeural-Female");
+  const [voice, setVoice] = useState("ru-RU-SvetlanaNeural-Female");
   const [subtitles, setSubtitles] = useState(true);
   const [bgm, setBgm] = useState("random");
   const [status, setStatus] = useState<Task | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [backend, setBackend] = useState<"checking" | "online" | "offline">(API ? "checking" : "offline");
+
+  useEffect(() => {
+    if (!API) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 8000);
+    fetch(`${API}/health`, { cache: "no-store", signal: controller.signal })
+      .then((response) => setBackend(response.ok ? "online" : "offline"))
+      .catch(() => setBackend("offline"))
+      .finally(() => window.clearTimeout(timer));
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, []);
 
   const ready = useMemo(() => subject.trim().length >= 3 && !busy, [subject, busy]);
 
@@ -84,7 +99,10 @@ export default function Page() {
     <main className="shell">
       <header className="topbar">
         <div className="brand"><span className="logo"><Film size={22}/></span><div><strong>AI Video Factory</strong><small>powered by MoneyPrinterTurbo</small></div></div>
-        <span className="badge">AUTOMATIC SHORT VIDEO</span>
+        <div className={`backend ${backend}`}>
+          {backend === "online" ? <CircleCheck size={16}/> : backend === "offline" ? <CircleX size={16}/> : <LoaderCircle className="spin" size={16}/>}
+          {backend === "online" ? "Сервер готов" : backend === "offline" ? "Сервер не подключён" : "Проверка сервера"}
+        </div>
       </header>
 
       <section className="hero">
@@ -104,7 +122,7 @@ export default function Page() {
           <label><span>Голос</span><input value={voice} onChange={e=>setVoice(e.target.value)} /></label>
           <label className="toggle"><input type="checkbox" checked={subtitles} onChange={e=>setSubtitles(e.target.checked)} /><span>Автоматические субтитры</span></label>
           {error && <div className="error">{error}</div>}
-          <button className="primary" disabled={!ready} onClick={generate}>{busy ? <><LoaderCircle className="spin" size={20}/> Генерация…</> : <><Sparkles size={20}/> Создать видео</>}</button>
+          <button className="primary" disabled={!ready || backend !== "online"} onClick={generate}>{busy ? <><LoaderCircle className="spin" size={20}/> Генерация…</> : <><Sparkles size={20}/> Создать видео</>}</button>
         </div>
 
         <aside className="panel statusPanel">

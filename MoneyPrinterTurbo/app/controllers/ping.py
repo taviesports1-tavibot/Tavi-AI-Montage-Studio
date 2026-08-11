@@ -11,3 +11,12 @@ router = APIRouter()
 )
 def ping(request: Request) -> str:
     return "pong"
+
+
+@router.get(
+    "/health",
+    tags=["Health Check"],
+    description="Container health check",
+)
+def health(request: Request) -> dict:
+    return {"ok": True, "service": "moneyprinter-turbo-api"}

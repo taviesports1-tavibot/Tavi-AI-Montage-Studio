@@ -16,3 +16,6 @@ The backend must expose MoneyPrinterTurbo routes including:
 - `GET /api/v1/tasks/{task_id}`
 
 The frontend belongs on Vercel. Long-running Python/FFmpeg rendering should run on Railway/VPS/container hosting rather than inside the Vercel frontend deployment.
+
+Railway deployment files and the required environment variables are documented
+in `../MoneyPrinterTurbo/RAILWAY.md`.

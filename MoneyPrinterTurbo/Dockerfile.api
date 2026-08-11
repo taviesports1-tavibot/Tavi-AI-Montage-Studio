@@ -1,0 +1,27 @@
+FROM python:3.11-slim-bookworm
+
+WORKDIR /MoneyPrinterTurbo
+
+ENV PYTHONPATH=/MoneyPrinterTurbo \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg git fontconfig libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --retries 3 --timeout 120 -r requirements.txt
+
+COPY app ./app
+COPY resource ./resource
+COPY config.example.toml ./config.example.toml
+COPY main.py ./main.py
+
+RUN mkdir -p /MoneyPrinterTurbo/storage/tasks \
+    && chmod -R 777 /MoneyPrinterTurbo/storage
+
+EXPOSE 8080
+
+CMD ["python3", "main.py"]

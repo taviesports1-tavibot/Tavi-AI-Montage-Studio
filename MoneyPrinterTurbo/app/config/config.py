@@ -528,11 +528,72 @@ ui = _SynchronizedConfig(
     )
 )
 
+
+def _first_env(*names):
+    """Return the first non-empty environment value without persisting secrets."""
+    for name in names:
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _apply_runtime_environment():
+    """Apply container-friendly overrides while keeping config.toml local-first."""
+    text_overrides = {
+        "llm_provider": _first_env("MPT_LLM_PROVIDER"),
+        "openai_api_key": _first_env("MPT_OPENAI_API_KEY", "OPENAI_API_KEY"),
+        "openai_base_url": _first_env("MPT_OPENAI_BASE_URL", "OPENAI_BASE_URL"),
+        "openai_model_name": _first_env("MPT_OPENAI_MODEL_NAME"),
+        "gemini_api_key": _first_env("MPT_GEMINI_API_KEY", "GEMINI_API_KEY"),
+        "gemini_model_name": _first_env("MPT_GEMINI_MODEL_NAME"),
+        "deepseek_api_key": _first_env("MPT_DEEPSEEK_API_KEY", "DEEPSEEK_API_KEY"),
+        "deepseek_base_url": _first_env("MPT_DEEPSEEK_BASE_URL"),
+        "deepseek_model_name": _first_env("MPT_DEEPSEEK_MODEL_NAME"),
+        "groq_api_key": _first_env("MPT_GROQ_API_KEY", "GROQ_API_KEY"),
+        "groq_base_url": _first_env("MPT_GROQ_BASE_URL"),
+        "groq_model_name": _first_env("MPT_GROQ_MODEL_NAME"),
+        "pollinations_api_key": _first_env("MPT_POLLINATIONS_API_KEY"),
+        "pollinations_base_url": _first_env("MPT_POLLINATIONS_BASE_URL"),
+        "pollinations_model_name": _first_env("MPT_POLLINATIONS_MODEL_NAME"),
+        "endpoint": _first_env("MPT_PUBLIC_BASE_URL"),
+    }
+    for key, value in text_overrides.items():
+        if value:
+            app[key] = value
+
+    list_overrides = {
+        "pexels_api_keys": _first_env("MPT_PEXELS_API_KEY", "PEXELS_API_KEY"),
+        "pixabay_api_keys": _first_env("MPT_PIXABAY_API_KEY", "PIXABAY_API_KEY"),
+        "coverr_api_keys": _first_env("MPT_COVERR_API_KEY", "COVERR_API_KEY"),
+    }
+    for key, value in list_overrides.items():
+        if value:
+            app[key] = [item.strip() for item in value.split(",") if item.strip()]
+
+    integer_overrides = {
+        "max_concurrent_tasks": _first_env("MPT_MAX_CONCURRENT_TASKS"),
+        "max_queued_tasks": _first_env("MPT_MAX_QUEUED_TASKS"),
+    }
+    for key, value in integer_overrides.items():
+        if value:
+            try:
+                app[key] = int(value)
+            except ValueError:
+                logger.warning(f"ignore invalid integer environment value for {key}")
+
+
+_apply_runtime_environment()
+
 hostname = socket.gethostname()
 
 log_level = _cfg.get("log_level", "DEBUG")
 listen_host = _cfg.get("listen_host", "0.0.0.0")
-listen_port = _cfg.get("listen_port", 8080)
+try:
+    listen_port = int(os.getenv("PORT", _cfg.get("listen_port", 8080)))
+except (TypeError, ValueError):
+    logger.warning("invalid PORT value, fallback to 8080")
+    listen_port = 8080
 project_name = _cfg.get("project_name", "MoneyPrinterTurbo")
 project_description = _cfg.get(
     "project_description",
